@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Tab History Navigation</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <main class="panel">
+      <header class="header">
+        <div>
+          <p class="eyebrow">Tab History Navigation</p>
+          <h1>Current Session</h1>
+        </div>
+        <button id="refreshButton" class="secondary">Refresh</button>
+      </header>
+
+      <section class="controls">
+        <button id="backButton">Back</button>
+        <button id="forwardButton">Forward</button>
+      </section>
+
+      <section class="statusCard">
+        <p id="statusLine" class="statusLine">Loading state…</p>
+        <p id="modeLine" class="meta"></p>
+        <p id="pendingLine" class="meta"></p>
+        <p id="commandLine" class="meta"></p>
+      </section>
+
+      <section class="statusCard">
+        <div class="sectionHeader">
+          <h2>Shortcuts</h2>
+        </div>
+        <ul id="shortcutList" class="shortcutList"></ul>
+      </section>
+
+      <section>
+        <div class="sectionHeader">
+          <h2>Timeline</h2>
+          <span id="countLine" class="meta"></span>
+        </div>
+        <ol id="timelineList" class="timelineList"></ol>
+      </section>
+
+      <section class="hintCard">
+        <p>Manual tab switches build history. Browser restart clears it.</p>
+      </section>
+    </main>
+
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

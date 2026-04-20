@@ -1,0 +1,155 @@
+:root {
+  color-scheme: light;
+  --bg: #f3efe6;
+  --panel: #fffaf1;
+  --text: #1d241f;
+  --muted: #5d685f;
+  --line: #d8cfbf;
+  --accent: #1f6a52;
+  --accent-strong: #0f4d39;
+  --accent-soft: #d8ebe2;
+}
+
+body {
+  margin: 0;
+  min-width: 340px;
+  background:
+    radial-gradient(circle at top left, #fff8dc 0%, transparent 35%),
+    linear-gradient(160deg, #f4efe6 0%, #ebe4d6 100%);
+  color: var(--text);
+  font: 14px/1.4 Georgia, "Iowan Old Style", "Palatino Linotype", serif;
+}
+
+.panel {
+  padding: 16px;
+}
+
+.header,
+.controls,
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+h1,
+h2,
+p,
+ol,
+ul {
+  margin: 0;
+}
+
+h1 {
+  font-size: 24px;
+  line-height: 1.1;
+}
+
+h2 {
+  font-size: 16px;
+}
+
+.controls {
+  margin-top: 14px;
+}
+
+button {
+  border: 1px solid var(--accent-strong);
+  background: var(--accent);
+  color: white;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font: inherit;
+  cursor: pointer;
+}
+
+button.secondary {
+  background: transparent;
+  color: var(--accent-strong);
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.statusCard,
+.hintCard {
+  margin-top: 14px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(255, 250, 241, 0.84);
+}
+
+.statusLine {
+  font-weight: 600;
+}
+
+.meta {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.timelineList {
+  margin-top: 10px;
+  padding-left: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+
+.shortcutList {
+  margin-top: 10px;
+  padding-left: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+
+.shortcutItem {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.shortcutName {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.timelineItem {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.timelineItem.current {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.timelineItem strong {
+  display: block;
+  font-size: 14px;
+}
+
+.emptyState {
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  padding: 12px;
+  color: var(--muted);
+  background: rgba(255, 250, 241, 0.7);
+}

@@ -1,0 +1,47 @@
+{
+  "manifest_version": 3,
+  "name": "Tab History Navigation",
+  "version": "0.1.0",
+  "description": "Cursor-based browser tab back and forward navigation across tabs and windows.",
+  "minimum_chrome_version": "117.0",
+  "background": {
+    "service_worker": "background/main.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "Tab History Navigation",
+    "default_popup": "popup/popup.html"
+  },
+  "permissions": [
+    "tabs",
+    "storage"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content/keyboard_shortcuts.js"
+      ],
+      "all_frames": true,
+      "run_at": "document_start"
+    }
+  ],
+  "commands": {
+    "goBackInTabHistory": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+Comma",
+        "mac": "MacCtrl+Shift+Comma"
+      },
+      "description": "Go back in tab history"
+    },
+    "goForwardInTabHistory": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+Period",
+        "mac": "MacCtrl+Shift+Period"
+      },
+      "description": "Go forward in tab history"
+    }
+  }
+}
