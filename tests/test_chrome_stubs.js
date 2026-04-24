@@ -65,6 +65,7 @@ export function createChromeStubs(initialTabs = []) {
     },
     tabs: {
       onActivated: createEvent(),
+      onUpdated: createEvent(),
       onRemoved: createEvent(),
       onReplaced: createEvent(),
       async query(queryInfo = {}) {

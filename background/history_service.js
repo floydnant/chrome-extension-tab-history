@@ -57,6 +57,10 @@ export class HistoryService {
       return this.enqueueAction({ type: "tab-activated", activeInfo });
     });
 
+    this.chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+      return this.enqueueAction({ type: "tab-updated", tabId, changeInfo, tab });
+    });
+
     this.chrome.tabs.onRemoved.addListener((tabId) => {
       return this.enqueueAction({ type: "tab-removed", tabId });
     });
@@ -144,6 +148,9 @@ export class HistoryService {
           windowId: action.activeInfo.windowId,
         });
         break;
+      case "tab-updated":
+        await this.handleTabUpdated(action.tabId, action.changeInfo, action.tab);
+        break;
       case "tab-removed":
         await this.handleTabRemoved(action.tabId);
         break;
@@ -226,6 +233,28 @@ export class HistoryService {
     }
 
     return await this.handleActivation(tabs[0]);
+  }
+
+  async handleTabUpdated(tabId, changeInfo, tab) {
+    const metadataChanged =
+      changeInfo?.status === "complete" ||
+      Object.prototype.hasOwnProperty.call(changeInfo ?? {}, "title") ||
+      Object.prototype.hasOwnProperty.call(changeInfo ?? {}, "favIconUrl");
+
+    if (!metadataChanged) {
+      return false;
+    }
+
+    const timelineEntry = await this.createTimelineEntry(tab ?? { tabId, windowId: changeInfo?.windowId });
+    if (timelineEntry.tabId == null || timelineEntry.windowId == null) {
+      return false;
+    }
+
+    const changed = this.refreshTabMetadata(timelineEntry);
+    if (changed) {
+      await this.persistState();
+    }
+    return changed;
   }
 
   async handleTabRemoved(tabId) {
@@ -427,6 +456,41 @@ export class HistoryService {
       title: tab?.title ?? entry.title ?? "Untitled tab",
       favIconUrl: tab?.favIconUrl ?? entry.favIconUrl ?? null,
     };
+  }
+
+  refreshTabMetadata(entry) {
+    let changed = false;
+    const timelines = [this.state.globalTimeline, ...Object.values(this.state.perWindowTimelines ?? {})];
+
+    for (const timeline of timelines) {
+      if (!timeline?.entries?.length) {
+        continue;
+      }
+
+      for (let index = 0; index < timeline.entries.length; index += 1) {
+        const currentEntry = timeline.entries[index];
+        if (currentEntry.tabId !== entry.tabId) {
+          continue;
+        }
+
+        const nextEntry = {
+          ...currentEntry,
+          title: entry.title ?? currentEntry.title,
+          favIconUrl: entry.favIconUrl ?? currentEntry.favIconUrl ?? null,
+        };
+
+        const entryChanged =
+          currentEntry.title !== nextEntry.title ||
+          currentEntry.favIconUrl !== nextEntry.favIconUrl;
+
+        if (entryChanged) {
+          timeline.entries[index] = nextEntry;
+          changed = true;
+        }
+      }
+    }
+
+    return changed;
   }
 
   async getCurrentFocusedTab() {

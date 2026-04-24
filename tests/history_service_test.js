@@ -380,3 +380,55 @@ test("runtime activation can focus a timeline entry directly", async () => {
   });
   assert.equal(service.getStateSnapshot().globalTimeline.cursor, 0);
 });
+
+test("tab updates backfill title and favicon after activation", async () => {
+  const { chrome } = createChromeStubs([
+    {
+      id: 11,
+      windowId: 1,
+      active: true,
+      title: "",
+      favIconUrl: null,
+      status: "loading",
+    },
+  ]);
+
+  const service = new HistoryService({ chromeApi: chrome });
+  await service.init();
+
+  await chrome.tabs.onActivated.dispatch({ tabId: 11, windowId: 1 });
+
+  chrome.tabs.get = async () => ({
+    id: 11,
+    windowId: 1,
+    active: true,
+    title: "Loaded title",
+    favIconUrl: "https://loaded.test/icon.png",
+    status: "complete",
+  });
+
+  await chrome.tabs.onUpdated.dispatch(
+    11,
+    { status: "complete", title: "Loaded title", favIconUrl: "https://loaded.test/icon.png" },
+    {
+      id: 11,
+      windowId: 1,
+      active: true,
+      title: "Loaded title",
+      favIconUrl: "https://loaded.test/icon.png",
+      status: "complete",
+    },
+  );
+
+  assert.deepEqual(service.getStateSnapshot().globalTimeline, {
+    entries: [
+      {
+        tabId: 11,
+        windowId: 1,
+        title: "Loaded title",
+        favIconUrl: "https://loaded.test/icon.png",
+      },
+    ],
+    cursor: 0,
+  });
+});
