@@ -103,6 +103,17 @@ export function recordManualVisit(timeline, entry) {
     timeline.entries = timeline.entries.slice(0, timeline.cursor + 1);
   }
 
+  const duplicateIndices = new Set();
+  for (let index = 0; index < timeline.entries.length; index += 1) {
+    if (sameEntry(timeline.entries[index], entry)) {
+      duplicateIndices.add(index);
+    }
+  }
+
+  if (removeIndicesFromTimeline(timeline, duplicateIndices)) {
+    normalizeTimeline(timeline);
+  }
+
   timeline.entries.push({ ...entry });
   timeline.cursor = timeline.entries.length - 1;
   return true;

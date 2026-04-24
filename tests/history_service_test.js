@@ -338,6 +338,64 @@ test("reactivating the same tab refreshes stored metadata", async () => {
   });
 });
 
+test("reactivating an older tab moves it to the end and removes its earlier occurrence", async () => {
+  const { chrome } = createChromeStubs([
+    {
+      id: 1,
+      windowId: 1,
+      active: false,
+      title: "Docs",
+      favIconUrl: "https://docs.test/icon.png",
+    },
+    {
+      id: 2,
+      windowId: 1,
+      active: false,
+      title: "Mail",
+      favIconUrl: "https://mail.test/icon.png",
+    },
+    {
+      id: 3,
+      windowId: 1,
+      active: true,
+      title: "Chat",
+      favIconUrl: "https://chat.test/icon.png",
+    },
+  ]);
+
+  const service = new HistoryService({ chromeApi: chrome });
+  await service.init();
+
+  await chrome.tabs.onActivated.dispatch({ tabId: 1, windowId: 1 });
+  await chrome.tabs.onActivated.dispatch({ tabId: 2, windowId: 1 });
+  await chrome.tabs.onActivated.dispatch({ tabId: 3, windowId: 1 });
+  await chrome.tabs.onActivated.dispatch({ tabId: 1, windowId: 1 });
+
+  assert.deepEqual(service.getStateSnapshot().globalTimeline, {
+    entries: [
+      {
+        tabId: 2,
+        windowId: 1,
+        title: "Mail",
+        favIconUrl: "https://mail.test/icon.png",
+      },
+      {
+        tabId: 3,
+        windowId: 1,
+        title: "Chat",
+        favIconUrl: "https://chat.test/icon.png",
+      },
+      {
+        tabId: 1,
+        windowId: 1,
+        title: "Docs",
+        favIconUrl: "https://docs.test/icon.png",
+      },
+    ],
+    cursor: 2,
+  });
+});
+
 test("runtime activation can focus a timeline entry directly", async () => {
   const { chrome, records } = createChromeStubs([
     {

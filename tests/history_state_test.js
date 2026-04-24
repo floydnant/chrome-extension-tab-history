@@ -55,6 +55,41 @@ test("manual visit after moving back truncates forward history", () => {
   });
 });
 
+test("manual revisit removes older duplicate entries and keeps newest visit", () => {
+  const timeline = createEmptyTimeline();
+
+  recordManualVisit(timeline, { tabId: 1, windowId: 1 });
+  recordManualVisit(timeline, { tabId: 2, windowId: 1 });
+  recordManualVisit(timeline, { tabId: 1, windowId: 1 });
+
+  assert.deepEqual(timeline, {
+    entries: [
+      { tabId: 2, windowId: 1 },
+      { tabId: 1, windowId: 1 },
+    ],
+    cursor: 1,
+  });
+});
+
+test("manual revisit from the middle drops forward history and older duplicates", () => {
+  const timeline = createEmptyTimeline();
+
+  recordManualVisit(timeline, { tabId: 1, windowId: 1 });
+  recordManualVisit(timeline, { tabId: 2, windowId: 1 });
+  recordManualVisit(timeline, { tabId: 3, windowId: 1 });
+  timeline.cursor = 1;
+
+  recordManualVisit(timeline, { tabId: 1, windowId: 1 });
+
+  assert.deepEqual(timeline, {
+    entries: [
+      { tabId: 2, windowId: 1 },
+      { tabId: 1, windowId: 1 },
+    ],
+    cursor: 1,
+  });
+});
+
 test("back and forward resolve targets without appending new entries", () => {
   const timeline = createEmptyTimeline();
   const liveTabIds = new Set([1, 2, 3]);
