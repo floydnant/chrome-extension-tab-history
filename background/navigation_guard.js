@@ -1,7 +1,10 @@
 import { NAVIGATION_GUARD_TIMEOUT_MS } from "./config.js";
 
 export class NavigationGuard {
-  constructor({ timeoutMs = NAVIGATION_GUARD_TIMEOUT_MS, clock = globalThis } = {}) {
+  constructor({
+    timeoutMs = NAVIGATION_GUARD_TIMEOUT_MS,
+    clock = globalThis,
+  } = {}) {
     this.timeoutMs = timeoutMs;
     this.clock = clock;
     this.pendingNavigation = null;

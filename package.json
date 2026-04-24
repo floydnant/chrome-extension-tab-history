@@ -4,6 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test tests/*.js"
+    "test": "node --test tests/*.js",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "prettier": "^3.8.3"
   }
 }

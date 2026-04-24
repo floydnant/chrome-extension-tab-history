@@ -1,48 +1,75 @@
 :root {
-  color-scheme: light;
-  --bg: #f3efe6;
-  --panel: #fffaf1;
-  --text: #1d241f;
-  --muted: #5d685f;
-  --line: #d8cfbf;
-  --accent: #1f6a52;
-  --accent-strong: #0f4d39;
-  --accent-soft: #d8ebe2;
+  color-scheme: light dark;
+  --bg: #f4f5f7;
+  --panel: rgba(255, 255, 255, 0.88);
+  --panel-strong: #ffffff;
+  --text: #17191c;
+  --muted: #5d6670;
+  --line: rgba(29, 36, 43, 0.12);
+  --accent: #0b6bcb;
+  --accent-strong: #08529b;
+  --accent-soft: rgba(181, 193, 205, 0.292);
+  --shadow: 0 18px 48px rgba(26, 33, 43, 0.18);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14171b;
+    --panel: rgba(30, 34, 40, 0.92);
+    --panel-strong: #1d2127;
+    --text: #f3f5f7;
+    --muted: #9aa3ae;
+    --line: rgba(255, 255, 255, 0.1);
+    --accent: #72b7ff;
+    --accent-strong: #a9d5ff;
+    --accent-soft: rgba(222, 238, 255, 0.292);
+    --shadow: 0 20px 56px rgba(0, 0, 0, 0.38);
+  }
 }
 
 body {
   margin: 0;
-  min-width: 340px;
+  width: 680px;
+  min-width: 680px;
+  max-width: 800px;
+  min-height: 320px;
+  max-height: 600px;
+  overflow: auto;
   background:
-    radial-gradient(circle at top left, #fff8dc 0%, transparent 35%),
-    linear-gradient(160deg, #f4efe6 0%, #ebe4d6 100%);
+    radial-gradient(
+      circle at top left,
+      rgba(86, 157, 255, 0.22) 0%,
+      transparent 28%
+    ),
+    linear-gradient(
+      180deg,
+      var(--bg) 0%,
+      color-mix(in srgb, var(--bg) 84%, black 16%) 100%
+    );
   color: var(--text);
-  font: 14px/1.4 Georgia, "Iowan Old Style", "Palatino Linotype", serif;
+  font:
+    14px/1.45 Helvetica,
+    Arial,
+    sans-serif;
 }
 
 .panel {
-  padding: 16px;
+  padding: 18px;
 }
 
 .header,
 .controls,
-.sectionHeader {
+.headerActions {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
 }
 
-.eyebrow {
-  margin: 0;
-  color: var(--muted);
-  font-size: 11px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+.header {
+  justify-content: space-between;
 }
 
 h1,
-h2,
 p,
 ol,
 ul {
@@ -50,12 +77,8 @@ ul {
 }
 
 h1 {
-  font-size: 24px;
+  font-size: 22px;
   line-height: 1.1;
-}
-
-h2 {
-  font-size: 16px;
 }
 
 .controls {
@@ -63,13 +86,17 @@ h2 {
 }
 
 button {
-  border: 1px solid var(--accent-strong);
+  border: none;
   background: var(--accent);
   color: white;
-  border-radius: 999px;
-  padding: 8px 14px;
+  border-radius: 10px;
+  padding: 4px 14px;
   font: inherit;
   cursor: pointer;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease,
+    transform 120ms ease;
 }
 
 button.secondary {
@@ -77,18 +104,26 @@ button.secondary {
   color: var(--accent-strong);
 }
 
+button:not(:disabled, .timelineTrigger):hover {
+  background-color: red;
+}
+
 button:disabled {
   opacity: 0.45;
   cursor: default;
 }
 
-.statusCard,
-.hintCard {
+.timelineSection {
+  margin-top: 24px;
+}
+.statusCard {
   margin-top: 14px;
   padding: 12px;
   border: 1px solid var(--line);
   border-radius: 14px;
-  background: rgba(255, 250, 241, 0.84);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(14px);
 }
 
 .statusLine {
@@ -101,49 +136,57 @@ button:disabled {
 }
 
 .timelineList {
-  margin-top: 10px;
+  margin: 0;
   padding-left: 0;
   list-style: none;
   display: grid;
-  gap: 8px;
-}
-
-.shortcutList {
-  margin-top: 10px;
-  padding-left: 0;
-  list-style: none;
-  display: grid;
-  gap: 8px;
-}
-
-.shortcutItem {
-  border: 1px solid var(--line);
-  background: var(--panel);
-  border-radius: 12px;
-  padding: 10px 12px;
-}
-
-.shortcutName {
-  display: block;
-  font-size: 13px;
-  font-weight: 600;
 }
 
 .timelineItem {
-  border: 1px solid var(--line);
-  background: var(--panel);
   border-radius: 12px;
-  padding: 10px 12px;
+  padding: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.timelineItem.current {
-  border-color: var(--accent);
+.timelineTrigger {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: inherit;
+  padding: 6px 10px;
+  text-align: left;
+
+  transition: none;
+}
+
+.timelineTrigger:is(:focus-visible, :hover) {
+  outline: none;
   background: var(--accent-soft);
 }
 
-.timelineItem strong {
+.timelineFavicon {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  border-radius: 4px;
+}
+
+.timelineItem span {
   display: block;
   font-size: 14px;
+  min-width: 0;
+  max-width: 100%;
+  flex: 1 1 auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .emptyState {
@@ -151,5 +194,5 @@ button:disabled {
   border-radius: 12px;
   padding: 12px;
   color: var(--muted);
-  background: rgba(255, 250, 241, 0.7);
+  background: transparent;
 }

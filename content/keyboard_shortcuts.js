@@ -4,16 +4,26 @@
       type: "go-back",
       description: "Ctrl+-",
       matches(event) {
-        return event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey &&
-          event.code === "Minus";
+        return (
+          event.ctrlKey &&
+          !event.metaKey &&
+          !event.altKey &&
+          !event.shiftKey &&
+          event.code === "Minus"
+        );
       },
     },
     {
       type: "go-forward",
       description: "Ctrl+Shift+-",
       matches(event) {
-        return event.ctrlKey && !event.metaKey && !event.altKey && event.shiftKey &&
-          event.code === "Minus";
+        return (
+          event.ctrlKey &&
+          !event.metaKey &&
+          !event.altKey &&
+          event.shiftKey &&
+          event.code === "Minus"
+        );
       },
     },
   ];
@@ -27,9 +37,11 @@
       return true;
     }
 
-    return element.closest(
-      'input, textarea, select, [contenteditable=""], [contenteditable="true"], [role="textbox"]',
-    ) != null;
+    return (
+      element.closest(
+        'input, textarea, select, [contenteditable=""], [contenteditable="true"], [role="textbox"]',
+      ) != null
+    );
   }
 
   function shouldIgnoreEvent(event) {
@@ -59,7 +71,11 @@
         source: "content-script-shortcut",
       });
     } catch (error) {
-      console.error("[tab-history] content shortcut failed", shortcut.description, error);
+      console.error(
+        "[tab-history] content shortcut failed",
+        shortcut.description,
+        error,
+      );
     }
   }
 

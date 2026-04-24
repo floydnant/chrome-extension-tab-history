@@ -62,7 +62,11 @@ export class HistoryService {
     });
 
     this.chrome.tabs.onReplaced.addListener((addedTabId, removedTabId) => {
-      return this.enqueueAction({ type: "tab-replaced", addedTabId, removedTabId });
+      return this.enqueueAction({
+        type: "tab-replaced",
+        addedTabId,
+        removedTabId,
+      });
     });
 
     this.chrome.windows.onFocusChanged.addListener((windowId) => {
@@ -73,16 +77,20 @@ export class HistoryService {
       return this.enqueueAction({ type: "command", command });
     });
 
-    this.chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-      if (!message?.type) {
-        return false;
-      }
+    this.chrome.runtime.onMessage.addListener(
+      (message, _sender, sendResponse) => {
+        if (!message?.type) {
+          return false;
+        }
 
-      this.enqueueAction({ type: "runtime-message", message })
-        .then((result) => sendResponse({ ok: true, ...result }))
-        .catch((error) => sendResponse({ ok: false, error: error?.message ?? String(error) }));
-      return true;
-    });
+        this.enqueueAction({ type: "runtime-message", message })
+          .then((result) => sendResponse({ ok: true, ...result }))
+          .catch((error) =>
+            sendResponse({ ok: false, error: error?.message ?? String(error) }),
+          );
+        return true;
+      },
+    );
   }
 
   async loadState() {
@@ -96,7 +104,9 @@ export class HistoryService {
         ...createEmptyPersistedState(this.historyMode),
         ...storedState,
         historyMode: this.historyMode,
-        globalTimeline: storedState.globalTimeline ?? createEmptyPersistedState(this.historyMode).globalTimeline,
+        globalTimeline:
+          storedState.globalTimeline ??
+          createEmptyPersistedState(this.historyMode).globalTimeline,
         perWindowTimelines: storedState.perWindowTimelines ?? {},
       };
     }
@@ -129,7 +139,10 @@ export class HistoryService {
   async handleAction(action) {
     switch (action.type) {
       case "tab-activated":
-        await this.handleActivation({ tabId: action.activeInfo.tabId, windowId: action.activeInfo.windowId });
+        await this.handleActivation({
+          tabId: action.activeInfo.tabId,
+          windowId: action.activeInfo.windowId,
+        });
         break;
       case "tab-removed":
         await this.handleTabRemoved(action.tabId);
@@ -155,10 +168,21 @@ export class HistoryService {
       case "get-state":
         return { state: this.getDebugState() };
       case "go-back":
-        await this.handleCommand(COMMAND_GO_BACK, { source: message.source ?? "runtime-message" });
+        await this.handleCommand(COMMAND_GO_BACK, {
+          source: message.source ?? "runtime-message",
+        });
         return { state: this.getDebugState() };
       case "go-forward":
-        await this.handleCommand(COMMAND_GO_FORWARD, { source: message.source ?? "runtime-message" });
+        await this.handleCommand(COMMAND_GO_FORWARD, {
+          source: message.source ?? "runtime-message",
+        });
+        return { state: this.getDebugState() };
+      case "activate-entry":
+        await this.handleEntryActivation(message.entryIndex, {
+          historyMode: message.historyMode,
+          windowId: message.windowId,
+          source: message.source ?? "runtime-message",
+        });
         return { state: this.getDebugState() };
       default:
         return { state: this.getDebugState() };
@@ -166,6 +190,7 @@ export class HistoryService {
   }
 
   async handleActivation(entry) {
+    const timelineEntry = await this.createTimelineEntry(entry);
     if (this.navigationGuard.consumeIfMatches(entry)) {
       return false;
     }
@@ -174,12 +199,16 @@ export class HistoryService {
       this.navigationGuard.clear();
     }
 
-    const timeline = getTimeline(this.state, this.historyMode, entry.windowId);
+    const timeline = getTimeline(
+      this.state,
+      this.historyMode,
+      timelineEntry.windowId,
+    );
     if (!timeline) {
       return false;
     }
 
-    const changed = recordManualVisit(timeline, entry);
+    const changed = recordManualVisit(timeline, timelineEntry);
     if (changed) {
       await this.persistState();
     }
@@ -196,7 +225,7 @@ export class HistoryService {
       return false;
     }
 
-    return await this.handleActivation({ tabId: tabs[0].id, windowId: tabs[0].windowId });
+    return await this.handleActivation(tabs[0]);
   }
 
   async handleTabRemoved(tabId) {
@@ -218,7 +247,11 @@ export class HistoryService {
     }
 
     if (addedTab?.active) {
-      changed = (await this.handleActivation({ tabId: addedTab.id, windowId: addedTab.windowId })) || changed;
+      changed =
+        (await this.handleActivation({
+          tabId: addedTab.id,
+          windowId: addedTab.windowId,
+        })) || changed;
     } else if (changed) {
       await this.persistState();
     }
@@ -247,7 +280,12 @@ export class HistoryService {
     }
 
     const direction = command === COMMAND_GO_BACK ? "back" : "forward";
-    const timeline = getTimeline(this.state, this.historyMode, currentTab.windowId, { create: false });
+    const timeline = getTimeline(
+      this.state,
+      this.historyMode,
+      currentTab.windowId,
+      { create: false },
+    );
     if (!timeline) {
       this.lastCommand.status = "no-timeline";
       this.lastCommand.windowId = currentTab.windowId;
@@ -256,7 +294,11 @@ export class HistoryService {
 
     const liveTabs = await this.chrome.tabs.query({});
     const liveTabIds = new Set(liveTabs.map((tab) => tab.id));
-    const { targetEntry, targetIndex, changed } = findNavigationTarget(timeline, direction, liveTabIds);
+    const { targetEntry, targetIndex, changed } = findNavigationTarget(
+      timeline,
+      direction,
+      liveTabIds,
+    );
 
     if (changed) {
       await this.persistState();
@@ -299,13 +341,99 @@ export class HistoryService {
     }
   }
 
+  async handleEntryActivation(
+    entryIndex,
+    { historyMode, windowId, source = "unknown" } = {},
+  ) {
+    this.lastCommand = {
+      command: "activate-entry",
+      source,
+      status: "received",
+      timestamp: new Date().toISOString(),
+      entryIndex,
+    };
+
+    const timeline = getTimeline(
+      this.state,
+      historyMode ?? this.historyMode,
+      historyMode === "per-window" ? windowId : undefined,
+      { create: false },
+    );
+
+    if (!timeline || timeline.cursor === -1) {
+      this.lastCommand.status = "no-timeline";
+      return false;
+    }
+
+    if (
+      !Number.isInteger(entryIndex) ||
+      entryIndex < 0 ||
+      entryIndex >= timeline.entries.length
+    ) {
+      this.lastCommand.status = "invalid-entry-index";
+      return false;
+    }
+
+    const targetEntry = timeline.entries[entryIndex];
+    const previousCursor = timeline.cursor;
+    timeline.cursor = entryIndex;
+    this.navigationGuard.expectNavigation({
+      ...targetEntry,
+      direction: entryIndex < previousCursor ? "back" : "forward",
+    });
+
+    try {
+      await this.focusAndActivateEntry(targetEntry);
+      await this.persistState();
+      this.lastCommand = {
+        ...this.lastCommand,
+        status: "navigated",
+        targetEntry: { ...targetEntry },
+      };
+      return true;
+    } catch {
+      this.navigationGuard.clear();
+      timeline.cursor = previousCursor;
+      this.lastCommand = {
+        ...this.lastCommand,
+        status: "navigation-failed",
+        targetEntry: { ...targetEntry },
+      };
+      return false;
+    }
+  }
+
   async focusAndActivateEntry(entry) {
     await this.chrome.windows.update(entry.windowId, { focused: true });
     await this.chrome.tabs.update(entry.tabId, { active: true });
   }
 
+  async createTimelineEntry(entry) {
+    let tab = null;
+
+    if (entry?.id != null && entry?.windowId != null) {
+      tab = entry;
+    } else if (entry?.tabId != null) {
+      try {
+        tab = await this.chrome.tabs.get(entry.tabId);
+      } catch {
+        tab = null;
+      }
+    }
+
+    return {
+      tabId: tab?.id ?? entry.tabId,
+      windowId: tab?.windowId ?? entry.windowId,
+      title: tab?.title ?? entry.title ?? "Untitled tab",
+      favIconUrl: tab?.favIconUrl ?? entry.favIconUrl ?? null,
+    };
+  }
+
   async getCurrentFocusedTab() {
-    const tabs = await this.chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    const tabs = await this.chrome.tabs.query({
+      active: true,
+      lastFocusedWindow: true,
+    });
     return tabs[0] ?? null;
   }
 

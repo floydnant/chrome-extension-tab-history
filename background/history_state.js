@@ -19,13 +19,17 @@ export function cloneTimeline(timeline) {
 
 export function clonePersistedState(state) {
   const perWindowTimelines = {};
-  for (const [windowId, timeline] of Object.entries(state.perWindowTimelines ?? {})) {
+  for (const [windowId, timeline] of Object.entries(
+    state.perWindowTimelines ?? {},
+  )) {
     perWindowTimelines[windowId] = cloneTimeline(timeline);
   }
 
   return {
     historyMode: state.historyMode,
-    globalTimeline: cloneTimeline(state.globalTimeline ?? createEmptyTimeline()),
+    globalTimeline: cloneTimeline(
+      state.globalTimeline ?? createEmptyTimeline(),
+    ),
     perWindowTimelines,
   };
 }
@@ -46,7 +50,12 @@ export function normalizeTimeline(timeline) {
 }
 
 export function sameEntry(left, right) {
-  return !!left && !!right && left.tabId === right.tabId && left.windowId === right.windowId;
+  return (
+    !!left &&
+    !!right &&
+    left.tabId === right.tabId &&
+    left.windowId === right.windowId
+  );
 }
 
 export function getCurrentEntry(timeline) {
@@ -54,7 +63,12 @@ export function getCurrentEntry(timeline) {
   return timeline.cursor === -1 ? null : timeline.entries[timeline.cursor];
 }
 
-export function getTimeline(state, historyMode, windowId, { create = true } = {}) {
+export function getTimeline(
+  state,
+  historyMode,
+  windowId,
+  { create = true } = {},
+) {
   if (historyMode === "global") {
     if (!state.globalTimeline) {
       state.globalTimeline = createEmptyTimeline();
@@ -77,7 +91,12 @@ export function recordManualVisit(timeline, entry) {
   normalizeTimeline(timeline);
   const currentEntry = getCurrentEntry(timeline);
   if (sameEntry(currentEntry, entry)) {
-    return false;
+    const nextEntry = { ...currentEntry, ...entry };
+    const changed = JSON.stringify(currentEntry) !== JSON.stringify(nextEntry);
+    if (changed) {
+      timeline.entries[timeline.cursor] = nextEntry;
+    }
+    return changed;
   }
 
   if (timeline.cursor < timeline.entries.length - 1) {
@@ -123,7 +142,10 @@ function removeIndicesFromTimeline(timeline, indicesToRemove) {
     nextCursor = Math.min(nextCursor, timeline.entries.length - 1);
   }
 
-  timeline.cursor = Math.max(0, Math.min(nextCursor, timeline.entries.length - 1));
+  timeline.cursor = Math.max(
+    0,
+    Math.min(nextCursor, timeline.entries.length - 1),
+  );
   return true;
 }
 
@@ -154,7 +176,10 @@ export function dedupeConsecutiveEntries(timeline) {
   }
 
   timeline.entries = nextEntries;
-  timeline.cursor = nextEntries.length === 0 ? -1 : Math.max(0, Math.min(nextCursor, nextEntries.length - 1));
+  timeline.cursor =
+    nextEntries.length === 0
+      ? -1
+      : Math.max(0, Math.min(nextCursor, nextEntries.length - 1));
   return true;
 }
 
@@ -191,7 +216,9 @@ export function pruneInvalidEntries(timeline, liveTabIds) {
 export function pruneStateForLiveTabs(state, liveTabIds) {
   let changed = pruneInvalidEntries(state.globalTimeline, liveTabIds);
 
-  for (const [windowId, timeline] of Object.entries(state.perWindowTimelines ?? {})) {
+  for (const [windowId, timeline] of Object.entries(
+    state.perWindowTimelines ?? {},
+  )) {
     changed = pruneInvalidEntries(timeline, liveTabIds) || changed;
     if (timeline.entries.length === 0) {
       delete state.perWindowTimelines[windowId];
@@ -205,7 +232,9 @@ export function pruneStateForLiveTabs(state, liveTabIds) {
 export function removeTabFromState(state, tabId) {
   let changed = removeTabFromTimeline(state.globalTimeline, tabId);
 
-  for (const [windowId, timeline] of Object.entries(state.perWindowTimelines ?? {})) {
+  for (const [windowId, timeline] of Object.entries(
+    state.perWindowTimelines ?? {},
+  )) {
     changed = removeTabFromTimeline(timeline, tabId) || changed;
     if (timeline.entries.length === 0) {
       delete state.perWindowTimelines[windowId];
@@ -242,7 +271,8 @@ export function findNavigationTarget(timeline, direction, liveTabIds) {
 
   let changed = false;
   if (staleIndices.length > 0) {
-    changed = removeIndicesFromTimeline(timeline, new Set(staleIndices)) || changed;
+    changed =
+      removeIndicesFromTimeline(timeline, new Set(staleIndices)) || changed;
     dedupeConsecutiveEntries(timeline);
   }
 

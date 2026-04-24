@@ -19,7 +19,10 @@ function cloneTab(tab) {
 export function createChromeStubs(initialTabs = []) {
   const tabsById = new Map(initialTabs.map((tab) => [tab.id, cloneTab(tab)]));
   const focusedWindow = {
-    id: initialTabs.find((tab) => tab.active)?.windowId ?? initialTabs[0]?.windowId ?? 1,
+    id:
+      initialTabs.find((tab) => tab.active)?.windowId ??
+      initialTabs[0]?.windowId ??
+      1,
   };
 
   const records = {
@@ -54,13 +57,9 @@ export function createChromeStubs(initialTabs = []) {
       onMessage: createEvent(),
       async sendMessage(message) {
         let response;
-        await chrome.runtime.onMessage.dispatch(
-          message,
-          {},
-          (value) => {
-            response = value;
-          },
-        );
+        await chrome.runtime.onMessage.dispatch(message, {}, (value) => {
+          response = value;
+        });
         return response;
       },
     },
@@ -104,7 +103,10 @@ export function createChromeStubs(initialTabs = []) {
         }
 
         Object.assign(targetTab, updateProperties);
-        records.tabUpdates.push({ tabId, updateProperties: structuredClone(updateProperties) });
+        records.tabUpdates.push({
+          tabId,
+          updateProperties: structuredClone(updateProperties),
+        });
         return cloneTab(targetTab);
       },
     },
@@ -115,7 +117,10 @@ export function createChromeStubs(initialTabs = []) {
         if (updateProperties.focused) {
           focusedWindow.id = windowId;
         }
-        records.windowUpdates.push({ windowId, updateProperties: structuredClone(updateProperties) });
+        records.windowUpdates.push({
+          windowId,
+          updateProperties: structuredClone(updateProperties),
+        });
         return { id: windowId, focused: !!updateProperties.focused };
       },
     },
