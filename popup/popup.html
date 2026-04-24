@@ -9,16 +9,37 @@
   <body>
     <main class="panel">
       <header class="header">
+        <section class="controls">
+          <button
+            id="backButton"
+            class="iconButton"
+            type="button"
+            aria-label="Go back"
+            title="Go back"
+          >
+            <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+              <path d="M9.75 3.25L5 8l4.75 4.75" />
+            </svg>
+          </button>
+          <button
+            id="forwardButton"
+            class="iconButton"
+            type="button"
+            aria-label="Go forward"
+            title="Go forward"
+          >
+            <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+              <path d="M6.25 3.25L11 8l-4.75 4.75" />
+            </svg>
+          </button>
+        </section>
+
         <h1>Tab History</h1>
+
         <div class="headerActions">
           <button id="refreshButton" class="secondary">Refresh</button>
         </div>
       </header>
-
-      <section class="controls">
-        <button id="backButton">Back</button>
-        <button id="forwardButton">Forward</button>
-      </section>
 
       <section id="statusCard" class="statusCard" hidden>
         <p id="statusLine" class="statusLine"></p>

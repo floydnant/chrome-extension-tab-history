@@ -409,7 +409,11 @@ test("tab updates backfill title and favicon after activation", async () => {
 
   await chrome.tabs.onUpdated.dispatch(
     11,
-    { status: "complete", title: "Loaded title", favIconUrl: "https://loaded.test/icon.png" },
+    {
+      status: "complete",
+      title: "Loaded title",
+      favIconUrl: "https://loaded.test/icon.png",
+    },
     {
       id: 11,
       windowId: 1,

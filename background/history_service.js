@@ -58,7 +58,12 @@ export class HistoryService {
     });
 
     this.chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-      return this.enqueueAction({ type: "tab-updated", tabId, changeInfo, tab });
+      return this.enqueueAction({
+        type: "tab-updated",
+        tabId,
+        changeInfo,
+        tab,
+      });
     });
 
     this.chrome.tabs.onRemoved.addListener((tabId) => {
@@ -149,7 +154,11 @@ export class HistoryService {
         });
         break;
       case "tab-updated":
-        await this.handleTabUpdated(action.tabId, action.changeInfo, action.tab);
+        await this.handleTabUpdated(
+          action.tabId,
+          action.changeInfo,
+          action.tab,
+        );
         break;
       case "tab-removed":
         await this.handleTabRemoved(action.tabId);
@@ -245,7 +254,9 @@ export class HistoryService {
       return false;
     }
 
-    const timelineEntry = await this.createTimelineEntry(tab ?? { tabId, windowId: changeInfo?.windowId });
+    const timelineEntry = await this.createTimelineEntry(
+      tab ?? { tabId, windowId: changeInfo?.windowId },
+    );
     if (timelineEntry.tabId == null || timelineEntry.windowId == null) {
       return false;
     }
@@ -460,7 +471,10 @@ export class HistoryService {
 
   refreshTabMetadata(entry) {
     let changed = false;
-    const timelines = [this.state.globalTimeline, ...Object.values(this.state.perWindowTimelines ?? {})];
+    const timelines = [
+      this.state.globalTimeline,
+      ...Object.values(this.state.perWindowTimelines ?? {}),
+    ];
 
     for (const timeline of timelines) {
       if (!timeline?.entries?.length) {

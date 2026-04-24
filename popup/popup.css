@@ -8,7 +8,7 @@
   --line: rgba(29, 36, 43, 0.12);
   --accent: #0b6bcb;
   --accent-strong: #08529b;
-  --accent-soft: rgba(181, 193, 205, 0.292);
+  --accent-soft: rgba(158, 168, 179, 0.424);
   --shadow: 0 18px 48px rgba(26, 33, 43, 0.18);
 }
 
@@ -32,9 +32,10 @@ body {
   width: 680px;
   min-width: 680px;
   max-width: 800px;
+  height: 600px;
   min-height: 320px;
   max-height: 600px;
-  overflow: auto;
+  overflow: hidden;
   background:
     radial-gradient(
       circle at top left,
@@ -54,7 +55,12 @@ body {
 }
 
 .panel {
-  padding: 18px;
+  box-sizing: border-box;
+  height: 100%;
+  padding: 18px 18px 0 18px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .header,
@@ -82,13 +88,13 @@ h1 {
 }
 
 .controls {
-  margin-top: 14px;
+  gap: 4px;
 }
 
 button {
   border: none;
-  background: var(--accent);
-  color: white;
+  background: transparent;
+  color: var(--muted);
   border-radius: 10px;
   padding: 4px 14px;
   font: inherit;
@@ -99,13 +105,45 @@ button {
     transform 120ms ease;
 }
 
-button.secondary {
+.iconButton {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
   background: transparent;
-  color: var(--accent-strong);
+  color: var(--muted);
+  transition:
+    background-color 120ms ease,
+    color 120ms ease;
+}
+
+.iconButton svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+}
+
+.iconButton:not(:disabled):hover,
+.iconButton:focus-visible {
+  background: var(--accent-soft);
+  color: var(--text);
+  transform: none;
+}
+
+.iconButton:focus-visible {
+  outline: none;
 }
 
 button:not(:disabled, .timelineTrigger):hover {
-  background-color: red;
+  background: var(--accent-soft);
+  color: var(--text);
 }
 
 button:disabled {
@@ -115,7 +153,13 @@ button:disabled {
 
 .timelineSection {
   margin-top: 24px;
+  padding-bottom: 18px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
+
 .statusCard {
   margin-top: 14px;
   padding: 12px;
