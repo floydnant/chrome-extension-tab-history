@@ -170,6 +170,31 @@ button:disabled {
   backdrop-filter: blur(14px);
 }
 
+.searchSection {
+  margin-top: 14px;
+}
+
+.searchInput {
+  box-sizing: border-box;
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  color: var(--text);
+  padding: 10px 12px;
+  font: inherit;
+  outline: none;
+}
+
+.searchInput::placeholder {
+  color: var(--muted);
+}
+
+.searchInput:focus {
+  border-color: var(--accent-strong);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-soft) 70%, transparent);
+}
+
 .statusLine {
   font-weight: 600;
 }
@@ -192,6 +217,10 @@ button:disabled {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.timelineItem.active {
+  background: var(--accent-soft);
 }
 
 .timelineTrigger {

@@ -1,13 +1,17 @@
 const statusLine = document.querySelector("#statusLine");
 const statusCard = document.querySelector("#statusCard");
+const searchInput = document.querySelector("#searchInput");
 const timelineList = document.querySelector("#timelineList");
 const backButton = document.querySelector("#backButton");
 const forwardButton = document.querySelector("#forwardButton");
 const refreshButton = document.querySelector("#refreshButton");
 
 const REQUEST_TIMEOUT_MS = 2000;
+let lastDebugState = null;
 let currentViewState = null;
-let focusedEntryIndex = null;
+let activeEntryIndex = null;
+let searchQuery = "";
+let lastRenderedEntries = [];
 
 function formatEntryTitle(entry) {
   const title = entry.title?.trim();
@@ -43,83 +47,110 @@ function getDisplayEntries(entries) {
   return entries.map((entry, index) => ({ entry, index })).reverse();
 }
 
-function getTimelineTriggers() {
-  return [...timelineList.querySelectorAll(".timelineTrigger")];
+function normalizeText(value) {
+  return value?.toLowerCase?.() ?? "";
 }
 
-function focusTimelineEntry({ preferredEntryIndex = null } = {}) {
-  const triggers = getTimelineTriggers();
-  if (!triggers.length) {
+function getFilteredEntries(entries) {
+  const normalizedQuery = normalizeText(searchQuery.trim());
+  if (!normalizedQuery) {
+    return getDisplayEntries(entries);
+  }
+
+  return getDisplayEntries(entries).filter(({ entry }) => {
+    return normalizeText(formatEntryTitle(entry)).includes(normalizedQuery);
+  });
+}
+
+function keepSearchFocused() {
+  if (document.hasFocus() && document.activeElement !== searchInput) {
+    searchInput.focus({ preventScroll: true });
+  }
+}
+
+function ensureActiveEntry(preferredEntryIndex = null) {
+  if (!lastRenderedEntries.length) {
+    activeEntryIndex = null;
     return;
   }
 
-  const targetTrigger =
-    preferredEntryIndex == null
-      ? triggers[0]
-      : (triggers.find(
-          (trigger) =>
-            Number(trigger.dataset.entryIndex) === preferredEntryIndex,
-        ) ?? triggers[0]);
-
-  targetTrigger.focus({ preventScroll: true });
-  focusedEntryIndex = Number(targetTrigger.dataset.entryIndex);
+  const matchingEntry = lastRenderedEntries.find(
+    ({ index }) => index === preferredEntryIndex,
+  );
+  activeEntryIndex = matchingEntry?.index ?? lastRenderedEntries[0].index;
 }
 
-function moveTimelineFocus(step) {
-  const triggers = getTimelineTriggers();
-  if (!triggers.length) {
+function syncActiveEntryIntoView() {
+  const activeTrigger = timelineList.querySelector(
+    `.timelineTrigger[data-entry-index="${activeEntryIndex}"]`,
+  );
+  activeTrigger?.scrollIntoView({ block: "nearest" });
+}
+
+function moveActiveEntry(step) {
+  if (!lastRenderedEntries.length) {
     return;
   }
 
-  const activeTrigger = document.activeElement?.closest?.(".timelineTrigger");
-  const currentIndex = activeTrigger ? triggers.indexOf(activeTrigger) : -1;
-  const nextIndex =
-    currentIndex === -1
+  const currentPosition = lastRenderedEntries.findIndex(
+    ({ index }) => index === activeEntryIndex,
+  );
+  const nextPosition =
+    currentPosition === -1
       ? 0
-      : Math.max(0, Math.min(currentIndex + step, triggers.length - 1));
+      : Math.max(
+          0,
+          Math.min(currentPosition + step, lastRenderedEntries.length - 1),
+        );
 
-  triggers[nextIndex].focus();
-  focusedEntryIndex = Number(triggers[nextIndex].dataset.entryIndex);
+  activeEntryIndex = lastRenderedEntries[nextPosition].index;
+  syncActiveEntryIntoView();
 }
 
 function handleTimelineNavigationKey(event) {
-  if (event.key === "ArrowDown" || event.key === "j") {
+  if (event.key === "ArrowDown" /*  || (event.key === "j") */) {
     event.preventDefault();
-    moveTimelineFocus(1);
+    moveActiveEntry(1);
     return true;
   }
 
-  if (event.key === "ArrowUp" || event.key === "k") {
+  if (event.key === "ArrowUp" /*  || (event.key === "k") */) {
     event.preventDefault();
-    moveTimelineFocus(-1);
+    moveActiveEntry(-1);
     return true;
   }
 
   if (event.key === "Home") {
     event.preventDefault();
-    focusTimelineEntry({
-      preferredEntryIndex: Number(getTimelineTriggers()[0]?.dataset.entryIndex),
-    });
+    ensureActiveEntry(lastRenderedEntries[0]?.index ?? null);
+    syncActiveEntryIntoView();
     return true;
   }
 
   if (event.key === "End") {
     event.preventDefault();
-    const triggers = getTimelineTriggers();
-    focusTimelineEntry({
-      preferredEntryIndex: Number(triggers.at(-1)?.dataset.entryIndex),
-    });
+    ensureActiveEntry(lastRenderedEntries.at(-1)?.index ?? null);
+    syncActiveEntryIntoView();
     return true;
   }
 
   return false;
 }
 
+function rerenderFromLastState() {
+  if (!lastDebugState) {
+    return;
+  }
+
+  render(lastDebugState);
+}
+
 function render(debugState) {
+  lastDebugState = debugState;
   const timeline = getActiveTimeline(debugState);
   const entries = timeline?.entries ?? [];
   const cursor = timeline?.cursor ?? -1;
-  const nextFocusedEntryIndex = focusedEntryIndex ?? cursor;
+  const nextActiveEntryIndex = activeEntryIndex ?? cursor;
   currentViewState = {
     historyMode: debugState.historyMode,
     windowId: getActiveWindowId(debugState),
@@ -132,31 +163,34 @@ function render(debugState) {
   forwardButton.disabled = cursor === -1 || cursor >= entries.length - 1;
 
   timelineList.replaceChildren();
+  lastRenderedEntries = getFilteredEntries(entries);
+  ensureActiveEntry(nextActiveEntryIndex);
 
-  if (!entries.length) {
-    focusedEntryIndex = null;
+  if (!lastRenderedEntries.length) {
+    activeEntryIndex = null;
     const emptyState = document.createElement("li");
     emptyState.className = "emptyState";
-    emptyState.textContent =
-      "No history yet. Switch tabs manually, then try Back or Forward.";
+    emptyState.textContent = searchQuery.trim()
+      ? "No matching tabs."
+      : "No history yet. Switch tabs manually, then try Back or Forward.";
     timelineList.append(emptyState);
+    keepSearchFocused();
     return;
   }
 
-  const displayEntries = getDisplayEntries(entries);
-
   for (
     let displayIndex = 0;
-    displayIndex < displayEntries.length;
+    displayIndex < lastRenderedEntries.length;
     displayIndex += 1
   ) {
-    const { entry, index } = displayEntries[displayIndex];
+    const { entry, index } = lastRenderedEntries[displayIndex];
     const item = document.createElement("li");
-    item.className = `timelineItem${index === cursor ? " current" : ""}`;
+    item.className = `timelineItem${index === cursor ? " current" : ""}${index === activeEntryIndex ? " active" : ""}`;
 
     const trigger = document.createElement("button");
     trigger.className = "timelineTrigger";
     trigger.type = "button";
+    trigger.tabIndex = -1;
     trigger.dataset.entryIndex = String(index);
     trigger.title = formatEntryTitle(entry);
     trigger.setAttribute("aria-label", `Activate ${formatEntryTitle(entry)}`);
@@ -174,7 +208,8 @@ function render(debugState) {
     timelineList.append(item);
   }
 
-  focusTimelineEntry({ preferredEntryIndex: nextFocusedEntryIndex });
+  syncActiveEntryIntoView();
+  keepSearchFocused();
 }
 
 async function request(type, payload = {}) {
@@ -208,6 +243,8 @@ async function loadState() {
     await request("get-state");
   } catch (error) {
     showError(error);
+  } finally {
+    keepSearchFocused();
   }
 }
 
@@ -234,6 +271,8 @@ backButton.addEventListener("click", async () => {
     await request("go-back");
   } catch (error) {
     showError(error);
+  } finally {
+    keepSearchFocused();
   }
 });
 
@@ -242,10 +281,32 @@ forwardButton.addEventListener("click", async () => {
     await request("go-forward");
   } catch (error) {
     showError(error);
+  } finally {
+    keepSearchFocused();
   }
 });
 
-refreshButton.addEventListener("click", loadState);
+refreshButton.addEventListener("click", async () => {
+  await loadState();
+  keepSearchFocused();
+});
+
+searchInput.addEventListener("input", () => {
+  searchQuery = searchInput.value;
+  rerenderFromLastState();
+});
+
+searchInput.addEventListener("keydown", async (event) => {
+  if (handleTimelineNavigationKey(event)) {
+    rerenderFromLastState();
+    return;
+  }
+
+  if (event.key === "Enter" && activeEntryIndex != null) {
+    event.preventDefault();
+    await activateTimelineEntry(activeEntryIndex);
+  }
+});
 
 timelineList.addEventListener("click", async (event) => {
   const trigger = event.target.closest(".timelineTrigger");
@@ -253,23 +314,8 @@ timelineList.addEventListener("click", async (event) => {
     return;
   }
 
+  activeEntryIndex = Number(trigger.dataset.entryIndex);
   await activateTimelineEntry(Number(trigger.dataset.entryIndex));
-});
-
-timelineList.addEventListener("keydown", async (event) => {
-  const trigger = event.target.closest(".timelineTrigger");
-  if (!trigger) {
-    return;
-  }
-
-  if (handleTimelineNavigationKey(event)) {
-    return;
-  }
-
-  if (event.key === "Enter" || event.key === " ") {
-    event.preventDefault();
-    await activateTimelineEntry(Number(trigger.dataset.entryIndex));
-  }
 });
 
 document.addEventListener("keydown", async (event) => {
@@ -282,29 +328,35 @@ document.addEventListener("keydown", async (event) => {
     return;
   }
 
-  const activeTrigger = document.activeElement?.closest?.(".timelineTrigger");
-  if (
-    !activeTrigger &&
-    (event.key === "ArrowDown" ||
-      event.key === "ArrowUp" ||
-      event.key === "j" ||
-      event.key === "k" ||
-      event.key === "Home" ||
-      event.key === "End")
-  ) {
-    if (handleTimelineNavigationKey(event)) {
-      return;
-    }
-  }
-
-  if (!activeTrigger) {
+  if (document.activeElement === searchInput) {
     return;
   }
 
-  if (event.key === "Enter" || event.key === " ") {
+  if (handleTimelineNavigationKey(event)) {
+    rerenderFromLastState();
+    return;
+  }
+
+  if (
+    (event.key === "Enter" || event.key === " ") &&
+    activeEntryIndex != null
+  ) {
     event.preventDefault();
-    await activateTimelineEntry(Number(activeTrigger.dataset.entryIndex));
+    await activateTimelineEntry(activeEntryIndex);
   }
 });
+
+window.addEventListener("focus", keepSearchFocused);
+
+document.addEventListener("mousedown", (event) => {
+  const clickedTimelineTrigger = event.target.closest(".timelineTrigger");
+  if (!clickedTimelineTrigger) {
+    return;
+  }
+
+  event.preventDefault();
+});
+
+loadState();
 
 loadState();
