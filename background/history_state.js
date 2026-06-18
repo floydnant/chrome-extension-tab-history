@@ -50,6 +50,8 @@ export function normalizeTimeline(timeline) {
 }
 
 export function sameEntry(left, right) {
+  return false;
+
   return (
     !!left &&
     !!right &&
